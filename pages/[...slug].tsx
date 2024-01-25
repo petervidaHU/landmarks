@@ -2,8 +2,9 @@ import path from 'path';
 import fs from 'fs';
 import matter from 'gray-matter';
 import React from 'react';
-import ExifReader from 'exifreader';
 import Image from 'next/image';
+import { filterImages, imageObjectBuilder } from '@/func/images';
+import { filterFolders, getFolderContent } from '@/func/folders';
 
 type pathsObject = {
   paths: Array<{ params: { slug: Array<string> } }>
@@ -41,57 +42,38 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
     path.relative(__dirname, '../landmarks/dataSource'),
     fullSlug
   );
-  const ownFolderContent = fs.readdirSync(dirPath);
+
+  const ownFolderContent = getFolderContent(dirPath);
+  // console.log('ownfoldercontent', ownFolderContent);
 
   // helpers
-  const getImagesFrom = (folder: Array<string>) => folder.filter((file) => {
-    const ext = path.extname(file).toLowerCase();
-    return ['.jpg', '.jpeg', '.png', '.gif'].includes(ext);
-  });
-
-  const getImagesWithSlug = (img: string) => `/dataSource/${fullSlug}/${img}`
-
-  const getImageExif = async (img: string) => {
-    const tags: any = await ExifReader.load(`${dirPath}/${img}`);
-
-    return {
-      desc: tags['ImageDescription']?.value[0],
-      caption: tags['Caption/Abstract']?.value.map((byte: number) => String.fromCharCode(byte)).join(''),
-    };
-  };
-
   const getMarkDownContent = (folderContent: Array<string>) => {
-    const ownMdFile = folderContent.filter(file => file.endsWith('.md'))[0];
-    const ownFileContent = fs.readFileSync(path.join(
+    const mdFile = folderContent.filter(file => file.endsWith('.md'))[0];
+    const fileContent = fs.readFileSync(path.join(
       dirPath,
-      ownMdFile
+      mdFile
     ), 'utf-8');
 
-    const { data, content } = matter(ownFileContent);
+    const { data, content } = matter(fileContent);
     return { data, content };
   }
 
-  const imageObjectBuilder = async (img: string) => {
-    const { desc, caption } = await getImageExif(img);
-
-    return {
-      url: getImagesWithSlug(img),
-      altText: { desc, caption },
-    }
-  }
-
   // logic
-  const ownImageFiles = getImagesFrom(ownFolderContent);
+  const ownImageFiles = filterImages(ownFolderContent);
+
+  const childFolders = filterFolders(dirPath, ownFolderContent);
+  console.log('childfolders:', childFolders)
 
   const { data: ownData, content: ownContent } = getMarkDownContent(ownFolderContent)
   ownData.fullSlug = fullSlug;
 
-  const ownImageArray = await Promise.all(ownImageFiles.map( async (img) => await imageObjectBuilder(img)));
+  const ownImageArray = await Promise.all(ownImageFiles.map(async (img) => await imageObjectBuilder(img, fullSlug, dirPath)));
 
   return {
     props: {
       data: ownData,
       content: ownContent,
+      childContent: null,
       images: {
         own: ownImageArray,
       }
@@ -106,7 +88,7 @@ const PoiPage = ({ data, content, images }: { data: any, content: any, images: a
   return (
     <>
       <div>{data.name}{content}</div>
-<Image src={images.own[0].url} alt={images.own[0].altText.desc} width={300} height={300} />
+      <Image src={images.own[0].url} alt={images.own[0].altText.desc} width={300} height={300} />
     </>
   )
 }
