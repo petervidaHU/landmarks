@@ -1,12 +1,12 @@
 import path from 'path';
 import fs from 'fs';
-import matter from 'gray-matter';
-import React from 'react';
-import Image from 'next/image';
+import React, { FC } from 'react';
 import { filterImages, imageObjectBuilder } from '@/func/images';
 import { filterFolders, getFolderContent, getSubContent } from '@/func/folders';
 import { getMarkDownContent } from '@/func/markdown';
-import { Frontmatter, ImageObject, SubContent } from '@/types/DataSource';
+import { DynamicProps, Frontmatter, ImageObject, SubContent, TypeOfEntity } from '@/types/DataSource';
+import CityTemplate from '@/components/page-templates/CityTemplate';
+import PoiTemplate from '@/components/page-templates/PoiTemplate';
 
 type pathsObject = {
   paths: Array<{ params: { slug: Array<string> } }>
@@ -51,10 +51,10 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
   const ownImageFiles = filterImages(ownFolderContent);
   const ownImages = await Promise.all(ownImageFiles.map(async (img) => await imageObjectBuilder(img, fullSlug, dirPath)));
 
-  
+
   const { data: ownData, content: ownContent } = getMarkDownContent(ownFolderContent, dirPath)
   ownData.fullSlug = fullSlug;
-  
+
   const subFolders = filterFolders(dirPath, ownFolderContent);
   const subContent = await getSubContent(subFolders, dirPath, fullSlug);
 
@@ -69,22 +69,35 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
   };
 }
 
+const DynamicPage: FC<DynamicProps> = ({
+  data, content, images, subContent,
+}) => {
+  const type: TypeOfEntity = data.type;
 
-const PoiPage = (
-  { data, ownContent, ownImages, subContent }:
-    { data: Frontmatter, ownContent: string, ownImages: Array<ImageObject>, subContent: Array<SubContent> }
-) => {
-  console.log('data:', ownImages);
-  console.log('subcontent:', subContent);
+  if (!type) {
+    throw new Error(`bad page template type: ${type}`);
+  };
+
+  const template = () => {
+    switch (type) {
+      case TypeOfEntity.city:
+        return (
+          <CityTemplate />
+        )
+      case TypeOfEntity.poi:
+        return (
+          <PoiTemplate
+            data={data}
+            content={content}
+            images={images}
+          />
+        )
+    }
+  }
+
   return (
-    <>
-      <div>{data.name}{ownContent}</div>
-      <Image src={ownImages[0].url} alt={ownImages[0].altText.desc} width={300} height={300} />
-      <Image src={subContent[0].images[0].url} alt="sss" width={300} height={300} />
-    </>
+    <>{template()}</>
   )
 }
 
-export default PoiPage;
-/*
-*/
+export default DynamicPage;
