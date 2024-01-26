@@ -49,15 +49,15 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
 
   // logic
   const ownImageFiles = filterImages(ownFolderContent);
+  const ownImages = await Promise.all(ownImageFiles.map(async (img) => await imageObjectBuilder(img, fullSlug, dirPath)));
 
-  const subFolders = filterFolders(dirPath, ownFolderContent);
-
+  
   const { data: ownData, content: ownContent } = getMarkDownContent(ownFolderContent, dirPath)
   ownData.fullSlug = fullSlug;
-
+  
+  const subFolders = filterFolders(dirPath, ownFolderContent);
   const subContent = await getSubContent(subFolders, dirPath, fullSlug);
 
-  const ownImages = await Promise.all(ownImageFiles.map(async (img) => await imageObjectBuilder(img, fullSlug, dirPath)));
 
   return {
     props: {

@@ -6,6 +6,7 @@ import { filterImages, imageObjectBuilder } from './images';
 export const getFolderContent = (folderPath: string): Array<string> => {
     try {
         const content = fs.readdirSync(folderPath);
+
         return content;
     } catch (error) {
         console.error(`Error reading folder content: ${error}`);
@@ -27,20 +28,19 @@ export const filterFolders = (dirPath: string, folderContent: Array<string>): Ar
     }
 }
 
-export const getSubContent = async (folders: Array<string>, dirPath: string, parentFullSlug: string) => {
-    const contents = await Promise.all(folders.map(async (folder) => {
+export const getSubContent = async (folders: Array<string>, dirPath: string, parentFullSlug: string) => await Promise.all(
+    folders.map(async (folder) => {
         const subFolderPath = `${dirPath}/${folder}`;
-
+        const publicFullslug = `${parentFullSlug}/${folder}`;
+        
         const thisContent = getFolderContent(subFolderPath);
+
         const thisMd = getMarkDownContent(thisContent, subFolderPath);
-        thisMd.data.fullSlug = `${parentFullSlug}/${folder}`;
+        thisMd.data.fullSlug = publicFullslug;
 
         const thisImages = filterImages(thisContent);
-        // console.log('thisimage: ', parentFullSlug);
         const imageObject = await Promise.all(thisImages
-            .map(async (image) => await imageObjectBuilder(image, `${parentFullSlug}/${folder}`, `${dirPath}/${folder}`)));
-
-        //  console.log('imageobjec of subfolders: ', imageObject);
+            .map(async (image) => await imageObjectBuilder(image, publicFullslug, subFolderPath)));
 
         return {
             data: thisMd.data,
@@ -48,5 +48,3 @@ export const getSubContent = async (folders: Array<string>, dirPath: string, par
             images: imageObject,
         };
     }));
-    return contents;
-}
