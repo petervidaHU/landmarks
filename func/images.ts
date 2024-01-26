@@ -15,11 +15,11 @@ export const filterImages = (folder: Array<string>) => folder.filter((file) => {
     return ['.jpg', '.jpeg', '.png', '.gif'].includes(ext);
 });
 
-export const imageObjectBuilder = async (img: string, fullSlug: string, dirPath: string) => {
-    const { desc = null, caption = null } = await getImageExif(img, dirPath);
+export const imageObjectBuilder = async (img: string, slug: string, imagePath: string) => {
+    const { desc = null, caption = null } = await getImageExif(img, imagePath);
 
     return {
-        url: `/dataSource/${fullSlug}/${img}`,
+        url: `/dataSource/${slug}/${img}`,
         altText: { desc, caption },
     }
 }

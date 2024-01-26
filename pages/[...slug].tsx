@@ -4,7 +4,9 @@ import matter from 'gray-matter';
 import React from 'react';
 import Image from 'next/image';
 import { filterImages, imageObjectBuilder } from '@/func/images';
-import { filterFolders, getFolderContent } from '@/func/folders';
+import { filterFolders, getFolderContent, getSubContent } from '@/func/folders';
+import { getMarkDownContent } from '@/func/markdown';
+import { Frontmatter, ImageObject, SubContent } from '@/types/DataSource';
 
 type pathsObject = {
   paths: Array<{ params: { slug: Array<string> } }>
@@ -44,51 +46,41 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
   );
 
   const ownFolderContent = getFolderContent(dirPath);
-  // console.log('ownfoldercontent', ownFolderContent);
-
-  // helpers
-  const getMarkDownContent = (folderContent: Array<string>) => {
-    const mdFile = folderContent.filter(file => file.endsWith('.md'))[0];
-    const fileContent = fs.readFileSync(path.join(
-      dirPath,
-      mdFile
-    ), 'utf-8');
-
-    const { data, content } = matter(fileContent);
-    return { data, content };
-  }
 
   // logic
   const ownImageFiles = filterImages(ownFolderContent);
 
-  const childFolders = filterFolders(dirPath, ownFolderContent);
-  console.log('childfolders:', childFolders)
+  const subFolders = filterFolders(dirPath, ownFolderContent);
 
-  const { data: ownData, content: ownContent } = getMarkDownContent(ownFolderContent)
+  const { data: ownData, content: ownContent } = getMarkDownContent(ownFolderContent, dirPath)
   ownData.fullSlug = fullSlug;
 
-  const ownImageArray = await Promise.all(ownImageFiles.map(async (img) => await imageObjectBuilder(img, fullSlug, dirPath)));
+  const subContent = await getSubContent(subFolders, dirPath, fullSlug);
+
+  const ownImages = await Promise.all(ownImageFiles.map(async (img) => await imageObjectBuilder(img, fullSlug, dirPath)));
 
   return {
     props: {
       data: ownData,
-      content: ownContent,
-      childContent: null,
-      images: {
-        own: ownImageArray,
-      }
+      ownContent,
+      subContent,
+      ownImages,
     },
   };
 }
 
 
-const PoiPage = ({ data, content, images }: { data: any, content: any, images: any }) => {
-  console.log('data:', images);
-  // console.log('content:', content);
+const PoiPage = (
+  { data, ownContent, ownImages, subContent }:
+    { data: Frontmatter, ownContent: string, ownImages: Array<ImageObject>, subContent: Array<SubContent> }
+) => {
+  console.log('data:', ownImages);
+  console.log('subcontent:', subContent);
   return (
     <>
-      <div>{data.name}{content}</div>
-      <Image src={images.own[0].url} alt={images.own[0].altText.desc} width={300} height={300} />
+      <div>{data.name}{ownContent}</div>
+      <Image src={ownImages[0].url} alt={ownImages[0].altText.desc} width={300} height={300} />
+      <Image src={subContent[0].images[0].url} alt="sss" width={300} height={300} />
     </>
   )
 }

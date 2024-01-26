@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import matter from 'gray-matter';
+import { getMarkDownContent } from './markdown';
+import { filterImages, imageObjectBuilder } from './images';
 
 export const getFolderContent = (folderPath: string): Array<string> => {
     try {
@@ -24,4 +25,28 @@ export const filterFolders = (dirPath: string, folderContent: Array<string>): Ar
         console.error(`Error filtering folders: ${error}`);
         throw new Error(error as any);
     }
+}
+
+export const getSubContent = async (folders: Array<string>, dirPath: string, parentFullSlug: string) => {
+    const contents = await Promise.all(folders.map(async (folder) => {
+        const subFolderPath = `${dirPath}/${folder}`;
+
+        const thisContent = getFolderContent(subFolderPath);
+        const thisMd = getMarkDownContent(thisContent, subFolderPath);
+        thisMd.data.fullSlug = `${parentFullSlug}/${folder}`;
+
+        const thisImages = filterImages(thisContent);
+        // console.log('thisimage: ', parentFullSlug);
+        const imageObject = await Promise.all(thisImages
+            .map(async (image) => await imageObjectBuilder(image, `${parentFullSlug}/${folder}`, `${dirPath}/${folder}`)));
+
+        //  console.log('imageobjec of subfolders: ', imageObject);
+
+        return {
+            data: thisMd.data,
+            content: thisMd.content,
+            images: imageObject,
+        };
+    }));
+    return contents;
 }
