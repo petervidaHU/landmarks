@@ -7,21 +7,22 @@ import { getMarkDownContent } from '@/func/markdown';
 import { DynamicProps, Frontmatter, ImageObject, SubContent, TypeOfEntity } from '@/types/DataSource';
 import CityTemplate from '@/components/page-templates/CityTemplate';
 import PoiTemplate from '@/components/page-templates/PoiTemplate';
+import { getCityContent } from '@/func/cityContent';
 
 type pathsObject = {
   paths: Array<{ params: { slug: Array<string> } }>
 };
 
 // ---- PATHS ----
-
 const sourceFile = (fil: string) => path.join(__dirname, path.relative(__dirname, '../landmarks/source-handler'), fil);
 
+const slugFiles = {
+  cityFile: sourceFile('slugs-city.json'),
+  listFile: sourceFile('slugs-list.json'),
+  poiFile: sourceFile('slugs-poi.json'),
+}
+
 export async function getStaticPaths() {
-  const slugFiles = {
-    cityFile: sourceFile('slugs-city.json'),
-    listFile: sourceFile('slugs-list.json'),
-    poiFile: sourceFile('slugs-poi.json'),
-  }
 
   const slugsData = Object.values(slugFiles).reduce((acc: Array<pathsObject>, curr) => [
     ...acc,
@@ -54,6 +55,13 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
 
   const { data: ownData, content: ownContent } = getMarkDownContent(ownFolderContent, dirPath)
   ownData.fullSlug = fullSlug;
+  const typ = ownData.type;
+
+  let extraContent: any;
+
+  if (typ === TypeOfEntity.city) {
+    getCityContent(dirPath, fullSlug);
+  }
 
   const subFolders = filterFolders(dirPath, ownFolderContent);
   const subContent = await getSubContent(subFolders, dirPath, fullSlug);
@@ -70,7 +78,7 @@ export async function getStaticProps({ params }: { params: { slug: Array<string>
 }
 
 const DynamicPage: FC<DynamicProps> = ({
-  data, content, images, subContent,
+  data, ownContent, ownImages, subContent,
 }) => {
   const type: TypeOfEntity = data.type;
 
@@ -88,8 +96,8 @@ const DynamicPage: FC<DynamicProps> = ({
         return (
           <PoiTemplate
             data={data}
-            content={content}
-            images={images}
+            ownContent={ownContent}
+            ownImages={ownImages}
           />
         )
     }

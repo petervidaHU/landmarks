@@ -34,7 +34,7 @@ export interface SubContent {
 
 export interface DynamicProps {
     data: Frontmatter,
-    content: string,
-    images: Array<ImageObject>,
+    ownContent: string,
+    ownImages: Array<ImageObject>,
     subContent: Array<SubContent>
   }
