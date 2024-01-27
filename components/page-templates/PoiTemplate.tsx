@@ -1,6 +1,7 @@
 import React, { FC } from 'react'
 import NextImage from 'next/image';
 import { Image } from "@nextui-org/react";
+import { Button, ButtonGroup } from "@nextui-org/react";
 import { DynamicProps } from '@/types/DataSource';
 
 const PoiTemplate: FC<Omit<DynamicProps, 'subContent'>> = ({
@@ -11,9 +12,19 @@ const PoiTemplate: FC<Omit<DynamicProps, 'subContent'>> = ({
     console.log('oi poi', ownContent)
     return (
         <>
+            <Button color="primary" variant="bordered">
+                Bordered
+            </Button>
+            <Button color="primary" variant="light">
+                Light
+            </Button>
+            <Button color="primary" variant="flat">
+                Flat
+            </Button>
             <div>{data.name}</div>
             <div>{ownContent}</div>
-            <Image src={ownImages[0].url} alt={ownImages[0].altText.desc} width={300} height={300} />
+            <Image as={NextImage}
+                src={ownImages[0].url} alt={ownImages[0].altText.desc} width={300} height={300} />
 
         </>
     )
